@@ -1,12 +1,10 @@
-use qrbill::{
-    Address, Currency, Iban, Language, QRBill, QRBillOptions, Reference, StructuredAddress,
-};
+use qrbill::{QRBill, QRBillOptions};
 use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{catch, catchers, get, post, routes};
 
 mod structs;
-use structs::{CurrencyRequest, QrbillRequest};
+use structs::QRBillRequest;
 
 #[get("/")]
 fn get() -> (Status, String) {
@@ -25,35 +23,12 @@ fn catch_malformed() -> (Status, String) {
 }
 
 #[post("/", data = "<data>")]
-fn post_qr(data: Json<QrbillRequest>) -> (Status, String) {
-    let iban = match (&data).account.parse::<Iban>() {
-        Ok(iban) => iban,
-        Err(_) => return (Status::BadRequest, String::from("Could not parse iban")),
-    };
+fn post_qr(data: Json<QRBillRequest>) -> (Status, String) {
+    let opts: Result<QRBillOptions, ()> = data.into_inner().try_into();
 
-    let opts = QRBillOptions {
-        account: iban,
-        creditor: Address::Structured(StructuredAddress {
-            name: data.creditor.name.clone(),
-            street: data.creditor.street.clone(),
-            house_number: data.creditor.house_no.clone(),
-            postal_code: data.creditor.postal_code.clone(),
-            city: data.creditor.town.clone(),
-            country: data.creditor.country_code.clone(),
-        }),
-        amount: data.amount,
-        currency: match data.currency {
-            CurrencyRequest::CHF => Currency::SwissFranc,
-            CurrencyRequest::EUR => Currency::Euro,
-        },
-        due_date: None,
-        debtor: None,
-        reference: Reference::None,
-        extra_infos: data.extra_infos.clone(),
-        alternative_processes: vec![],
-        language: Language::English,
-        top_line: false,
-        payment_line: false,
+    let opts = match opts {
+        Ok(opts) => opts,
+        Err(_) => return (Status::BadRequest, String::from("Could not parse IBAN")),
     };
 
     match QRBill::new(opts) {
