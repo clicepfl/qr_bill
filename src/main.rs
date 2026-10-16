@@ -84,8 +84,26 @@ fn post_qr(data: Json<QrbillRequest>) -> (Status, String) {
         payment_line: false,
     };
 
-    let qr = QRBill::new(opts);
-    (Status::Ok, qr.unwrap().create_svg(false).unwrap())
+    match QRBill::new(opts) {
+        Ok(qr) => match qr.create_svg(false) {
+            Ok(svg) => (Status::Ok, svg),
+            Err(_) => (
+                Status::InternalServerError,
+                String::from("An error ocurred while rendering the QRBill SVG"),
+            ),
+        },
+        Err(e) => match e {
+            qrbill::Error::InvalidIban => (Status::BadRequest, String::from("Invalid iban")),
+            qrbill::Error::ExtraInfos => (
+                Status::BadRequest,
+                String::from("Message field content is too long"),
+            ),
+            _ => (
+                Status::InternalServerError,
+                String::from("A server error ocurred"),
+            ),
+        },
+    }
 }
 
 #[rocket::main]
