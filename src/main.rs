@@ -4,7 +4,7 @@ use qrbill::{
 };
 use rocket::http::Status;
 use rocket::serde::json::Json;
-use rocket::{post, routes};
+use rocket::{catch, catchers, get, post, routes};
 
 use serde::Deserialize;
 
@@ -35,6 +35,22 @@ struct QrbillRequest {
     #[serde(rename = "message")]
     extra_infos: Option<String>,
     creditor: AddressRequest,
+}
+
+#[get("/")]
+fn get() -> (Status, String) {
+    (
+        Status::MethodNotAllowed,
+        String::from("Please use a POST request"),
+    )
+}
+
+#[catch(422)]
+fn catch_malformed() -> (Status, String) {
+    (
+        Status::BadRequest,
+        String::from("Could not parse form data"),
+    )
 }
 
 #[post("/", data = "<data>")]
@@ -94,7 +110,8 @@ fn post_qr(data: Json<QrbillRequest>) -> (Status, String) {
 #[rocket::main]
 async fn main() {
     rocket::build()
-        .mount("/qrbill-generator", routes![post_qr])
+        .mount("/qrbill-generator", routes![post_qr, get])
+        .register("/qrbill-generator", catchers![catch_malformed])
         .launch()
         .await
         .unwrap();
