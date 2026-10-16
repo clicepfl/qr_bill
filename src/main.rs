@@ -2,6 +2,7 @@ use isocountry::CountryCode;
 use qrbill::{
     Address, Currency, Iban, Language, QRBill, QRBillOptions, Reference, StructuredAddress,
 };
+use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{post, routes};
 
@@ -52,9 +53,14 @@ struct QrbillRequest {
 }
 
 #[post("/", data = "<data>")]
-fn post_qr(data: Json<QrbillRequest>) -> String {
+fn post_qr(data: Json<QrbillRequest>) -> (Status, String) {
+    let iban = match (&data).account.parse::<Iban>() {
+        Ok(iban) => iban,
+        Err(_) => return (Status::BadRequest, String::from("Could not parse iban")),
+    };
+
     let opts = QRBillOptions {
-        account: (&data).account.parse::<Iban>().unwrap(),
+        account: iban,
         creditor: Address::Structured(StructuredAddress {
             name: data.creditor.name.clone(),
             street: data.creditor.street.clone(),
@@ -79,7 +85,7 @@ fn post_qr(data: Json<QrbillRequest>) -> String {
     };
 
     let qr = QRBill::new(opts);
-    qr.unwrap().create_svg(false).unwrap()
+    (Status::Ok, qr.unwrap().create_svg(false).unwrap())
 }
 
 #[rocket::main]
