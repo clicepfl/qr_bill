@@ -1,4 +1,3 @@
-use isocountry::CountryCode;
 use qrbill::{
     Address, Currency, Iban, Language, QRBill, QRBillOptions, Reference, StructuredAddress,
 };
@@ -6,36 +5,8 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{catch, catchers, get, post, routes};
 
-use serde::Deserialize;
-
-#[derive(Deserialize)]
-struct AddressRequest {
-    name: String,
-    street: String,
-    #[serde(rename = "houseNo")]
-    house_no: String,
-    #[serde(rename = "postalCode")]
-    postal_code: String,
-    town: String,
-    #[serde(rename = "countryCode")]
-    country_code: CountryCode,
-}
-
-#[derive(Deserialize)]
-enum CurrencyRequest {
-    CHF,
-    EUR,
-}
-
-#[derive(Deserialize)]
-struct QrbillRequest {
-    account: String,
-    amount: Option<f64>,
-    currency: CurrencyRequest,
-    #[serde(rename = "message")]
-    extra_infos: Option<String>,
-    creditor: AddressRequest,
-}
+mod structs;
+use structs::{CurrencyRequest, QrbillRequest};
 
 #[get("/")]
 fn get() -> (Status, String) {
