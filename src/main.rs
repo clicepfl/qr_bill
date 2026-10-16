@@ -6,8 +6,6 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use rocket::{post, routes};
 
-use chrono::{DateTime, Utc};
-
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -30,12 +28,6 @@ enum CurrencyRequest {
 }
 
 #[derive(Deserialize)]
-struct ReferenceRequest {}
-
-#[derive(Deserialize)]
-struct LanguageRequest {}
-
-#[derive(Deserialize)]
 struct QrbillRequest {
     account: String,
     amount: Option<f64>,
@@ -43,13 +35,6 @@ struct QrbillRequest {
     #[serde(rename = "message")]
     extra_infos: Option<String>,
     creditor: AddressRequest,
-    //due_date: Option<DateTime<Utc>>,
-    //debtor: Option<AddressRequest>,
-    //reference: ReferenceRequest,
-    //alternative_processes: Vec<String>,
-    //language: LanguageRequest,
-    //top_line: bool,
-    //payment_line: bool,
 }
 
 #[post("/", data = "<data>")]
@@ -95,7 +80,7 @@ fn post_qr(data: Json<QrbillRequest>) -> (Status, String) {
         Err(e) => match e {
             qrbill::Error::InvalidIban => (Status::BadRequest, String::from("Invalid iban")),
             qrbill::Error::ExtraInfos => (
-                Status::BadRequest,
+                Status::PayloadTooLarge,
                 String::from("Message field content is too long"),
             ),
             _ => (
