@@ -56,8 +56,8 @@ fn post_qr(data: Json<QRBillRequest>) -> (Status, String) {
 #[rocket::main]
 async fn main() {
     rocket::build()
-        .mount("/qrbill-generator", routes![post_qr, get])
-        .register("/qrbill-generator", catchers![catch_malformed])
+        .mount("/", routes![post_qr, get])
+        .register("/", catchers![catch_malformed])
         .launch()
         .await
         .unwrap();
